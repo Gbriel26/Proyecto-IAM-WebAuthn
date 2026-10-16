@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IAM Universidad — Passwordless WebAuthn</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <span class="badge">IAM &middot; FIDO2 / WebAuthn</span>
+      <h1>Identidad sin contraseñas</h1>
+      <p>Sistema Centralizado de Identidad y Accesos — demo PyME con llaves de acceso.</p>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Secciones">
+      <button class="tab-btn active" data-tab="auth" role="tab">Autenticación</button>
+      <button class="tab-btn" data-tab="dashboard" role="tab">Panel Protegido</button>
+      <button class="tab-btn" data-tab="audit" role="tab">Auditoría</button>
+    </nav>
+
+    <!-- Pestaña 1: Autenticación -->
+    <section id="tab-auth" class="tab-panel active" role="tabpanel">
+      <div class="mode-switch" role="tablist" aria-label="Modo de autenticación">
+        <button id="mode-register-btn" class="mode-btn active" data-mode="register">Registrar una llave de acceso</button>
+        <button id="mode-login-btn" class="mode-btn" data-mode="login">Iniciar Sesión sin Contraseña</button>
+      </div>
+
+      <div id="auth-mode-register" class="card auth-mode">
+        <h2>Alta de Empleado — Registro de Credencial</h2>
+        <p class="hint">Genera un Reto Criptográfico (Challenge) y registra la llave pública tras la Verificación en Servidor IAM.</p>
+        <label for="reg-email">Email corporativo</label>
+        <input id="reg-email" type="email" placeholder="empleado@pyme.com" autocomplete="username" />
+        <label for="reg-nombre">Nombre completo</label>
+        <input id="reg-nombre" type="text" placeholder="Nombre completo" autocomplete="name" />
+        <label for="reg-rol">Rol del Empleado</label>
+        <select id="reg-rol">
+          <option value="usuario" selected>usuario (por defecto)</option>
+          <option value="admin">admin</option>
+          <option value="operativo">operativo</option>
+          <option value="gerencia">gerencia</option>
+        </select>
+        <button id="btn-register" class="primary">Registrar una llave de acceso</button>
+      </div>
+
+      <div id="auth-mode-login" class="card auth-mode" hidden>
+        <h2>Acceso Corporativo — Autenticación WebAuthn (Passwordless)</h2>
+        <p class="hint">Firma el Reto Criptográfico (Challenge) con tu Firma Digital FIDO2. Sin contraseñas.</p>
+        <label for="login-email">Email corporativo</label>
+        <input id="login-email" type="email" placeholder="empleado@pyme.com" autocomplete="username" />
+        <button id="btn-login" class="primary">Iniciar sesión con biometría</button>
+      </div>
+    </section>
+
+    <!-- Pestaña 2: Panel protegido -->
+    <section id="tab-dashboard" class="tab-panel" role="tabpanel">
+      <div class="card">
+        <h2>Plataforma PyME protegida</h2>
+        <p class="hint">Solo visible con un JWT válido emitido tras un login WebAuthn.</p>
+        <div class="status-row">
+          <span id="session-dot" class="dot"></span>
+          <span id="session-status">Sin sesión activa</span>
+        </div>
+        <dl class="kv">
+          <dt>Usuario</dt><dd id="dash-user">—</dd>
+          <dt>Email</dt><dd id="dash-email">—</dd>
+          <dt>Rol</dt><dd id="dash-rol">—</dd>
+        </dl>
+        <label>Token JWT activo</label>
+        <div id="dash-token" class="token-box">Aún no hay token. Inicia sesión en la pestaña Autenticación.</div>
+        <div class="btn-row">
+          <button id="btn-toggle-token" class="ghost" disabled>Mostrar token</button>
+          <button id="btn-copy-token" class="ghost" disabled>Copiar token</button>
+        </div>
+        <label>Módulos habilitados según tu rol</label>
+        <div id="dash-modules" class="modules"><p class="hint">Sin datos. Inicia sesión para consultar /api/dashboard/pyme-data.</p></div>
+        <button id="btn-refresh-modules" class="ghost">Actualizar módulos</button>
+        <button id="btn-logout" class="ghost">Cerrar sesión local</button>
+      </div>
+    </section>
+
+    <!-- Pestaña 3: Auditoría -->
+    <section id="tab-audit" class="tab-panel" role="tabpanel">
+      <div class="card">
+        <h2>Estado del protocolo</h2>
+        <p class="hint">Parámetros de la parte confiante (Relying Party) y estado del servidor.</p>
+        <div class="proto-grid">
+          <div class="cell"><b>Estándar</b><span>WebAuthn L2 / FIDO2</span></div>
+          <div class="cell"><b>Servidor</b><span id="audit-backend">comprobando…</span></div>
+          <div class="cell"><b>Atestación</b><span>ninguna (demostración)</span></div>
+          <div class="cell"><b>Verificación de usuario</b><span>preferida</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Consola de eventos</h2>
+        <p class="hint">Cada paso de la ceremonia (reto → firma → verificación → JWT).</p>
+        <div id="audit-log" class="console" aria-live="polite"></div>
+        <button id="btn-clear-log" class="ghost">Limpiar consola</button>
+      </div>
+    </section>
+
+    <footer class="footer">Demo académica — la llave privada nunca sale de tu dispositivo.</footer>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
