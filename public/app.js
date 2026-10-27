@@ -179,11 +179,14 @@ $('btn-register').addEventListener('click', async () => {
   if (!email) return audit('Alta de Empleado: ingresa un email.', 'err');
   try {
     audit(`Alta de Empleado: solicitando Reto Criptográfico (Challenge) para ${email} (rol ${rol})…`);
-    const optionsJSON = await postJSON('/api/auth/register-challenge', { email, nombre_completo, rol });
+    // Si hay una sesión de administrador activa, se envía su token: así el
+    // backend puede autorizar roles elevados cuando la política segura está
+    // activa (ALLOW_PUBLIC_ROLE_SELECTION=false).
+    const optionsJSON = await postJSON('/api/auth/register-challenge', { email, nombre_completo, rol }, state.token);
     audit('Alta de Empleado: Reto Criptográfico (Challenge) recibido. Esperando gesto biométrico…');
     const attResp = await startRegistration({ optionsJSON });
     audit('Alta de Empleado: credencial creada. Enviando a Verificación en Servidor IAM…');
-    const result = await postJSON('/api/auth/register-verify', { email, nombre_completo, rol, attResp });
+    const result = await postJSON('/api/auth/register-verify', { email, nombre_completo, rol, attResp }, state.token);
     audit(`Alta de Empleado OK: credencial FIDO2 guardada para ${result.user.email} (rol ${result.user.rol}).`, 'ok');
     goTab('audit');
   } catch (err) {

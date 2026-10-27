@@ -7,8 +7,8 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Verificación temprana de conectividad (no tumba el proceso si falla,
-// solo lo reporta para facilitar el diagnóstico en la universidad).
+// Manejo de errores inesperados del pool (por ejemplo, caída de PostgreSQL).
+// El arranque no se tumba aquí: /api/health reporta el estado de la BD.
 pool.on('error', (err) => {
   console.error('[db] Error inesperado en el pool:', err.message);
 });

@@ -1,19 +1,35 @@
+'use strict';
+
 const express = require('express');
 const authController = require('../controllers/auth.controller');
+const config = require('../config/env');
+const { createRateLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
+// Límite general para todo /api/auth (fuerza bruta / scraping).
+const authLimiter = createRateLimiter({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.max,
+  message: 'Demasiadas solicitudes de autenticación. Espera un momento.',
+});
+
+// Límite estricto para ceremonias WebAuthn (generación y verificación).
+const ceremonyLimiter = createRateLimiter({
+  windowMs: config.rateLimit.strictWindowMs,
+  max: config.rateLimit.strictMax,
+  message: 'Demasiados intentos de autenticación. Espera antes de reintentar.',
+});
+
+router.use(authLimiter);
+
 // --- Registro (attestation / creación de credencial) ---
-// 1. El frontend pide un reto criptográfico (challenge) para registrarse.
-router.post('/register-challenge', authController.registerChallenge);
-// 2. El frontend responde con la attestation firmada por el autenticador.
-router.post('/register-verify', authController.registerVerify);
+router.post('/register-challenge', ceremonyLimiter, authController.registerChallenge);
+router.post('/register-verify', ceremonyLimiter, authController.registerVerify);
 
 // --- Login (assertion / uso de credencial existente) ---
-// 1. El frontend pide un reto para autenticarse.
-router.post('/login-challenge', authController.loginChallenge);
-// 2. El frontend responde con la assertion firmada. Si verifica, se emite JWT.
-router.post('/login-verify', authController.loginVerify);
+router.post('/login-challenge', ceremonyLimiter, authController.loginChallenge);
+router.post('/login-verify', ceremonyLimiter, authController.loginVerify);
 
 // --- Cierre de sesión real: invalida la sesión en PostgreSQL ---
 router.post('/logout', authController.logout);

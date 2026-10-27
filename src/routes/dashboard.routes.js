@@ -4,7 +4,7 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 
 // Catálogo simulado de módulos PyME por Rol del Empleado (Tabla 1).
-// El Token JWT de Acceso Unificado define `rol` y con ello el nivel de acceso.
+// El rol vigente lo obtiene requireAuth desde PostgreSQL (no del JWT congelado).
 const MODULOS_POR_ROL = {
   admin: {
     nivel_acceso: 'total',
@@ -52,7 +52,7 @@ router.get('/pyme-data', requireAuth, (req, res) => {
   const rol = (req.user.rol || 'usuario').toLowerCase();
   const data = MODULOS_POR_ROL[rol] || MODULOS_POR_ROL.usuario;
   return res.json({
-    empresa: 'PyME Demo — Plataforma protegida por IAM WebAuthn',
+    empresa: 'PyME — Plataforma protegida por IAM WebAuthn',
     usuario: req.user,
     rol,
     nivel_acceso: data.nivel_acceso,

@@ -11,7 +11,7 @@
     <header class="header">
       <span class="badge">IAM &middot; FIDO2 / WebAuthn</span>
       <h1>Identidad sin contraseñas</h1>
-      <p>Sistema Centralizado de Identidad y Accesos — demo PyME con llaves de acceso.</p>
+      <p>Sistema Centralizado de Identidad y Accesos — PyME con llaves de acceso.</p>
     </header>
 
     <nav class="tabs" role="tablist" aria-label="Secciones">
@@ -29,7 +29,7 @@
 
       <div id="auth-mode-register" class="card auth-mode">
         <h2>Alta de Empleado — Registro de Credencial</h2>
-        <p class="hint">Genera un Reto Criptográfico (Challenge) y registra la llave pública tras la Verificación en Servidor IAM.</p>
+        <p class="hint">Genera un Reto Criptográfico y registra la llave pública tras la Verificación en Servidor IAM. Acepta autenticadores de plataforma (Windows Hello / TPM 2.0) y llaves USB (YubiKey).</p>
         <label for="reg-email">Email corporativo</label>
         <input id="reg-email" type="email" placeholder="empleado@pyme.com" autocomplete="username" />
         <label for="reg-nombre">Nombre completo</label>
@@ -41,12 +41,13 @@
           <option value="operativo">operativo</option>
           <option value="gerencia">gerencia</option>
         </select>
+        <p class="hint">Para añadir otra llave a una cuenta ya registrada, inicia sesión primero; el rol existente se conserva.</p>
         <button id="btn-register" class="primary">Registrar una llave de acceso</button>
       </div>
 
       <div id="auth-mode-login" class="card auth-mode" hidden>
         <h2>Acceso Corporativo — Autenticación WebAuthn (Passwordless)</h2>
-        <p class="hint">Firma el Reto Criptográfico (Challenge) con tu Firma Digital FIDO2. Sin contraseñas.</p>
+        <p class="hint">Firma el Reto Criptográfico (Challenge) con tu Firma Digital FIDO2. Sin contraseñas: Windows Hello, biometría móvil o llave USB.</p>
         <label for="login-email">Email corporativo</label>
         <input id="login-email" type="email" placeholder="empleado@pyme.com" autocomplete="username" />
         <button id="btn-login" class="primary">Iniciar sesión con biometría</button>
@@ -100,7 +101,7 @@
       </div>
     </section>
 
-    <footer class="footer">Demo académica — la llave privada nunca sale de tu dispositivo.</footer>
+    <footer class="footer">la llave privada nunca sale de tu dispositivo.</footer>
   </main>
 
   <script type="module" src="./app.js"></script>
