@@ -274,7 +274,7 @@ docs/                        Resultados y matriz de pruebas
 
 ---
 
-## 9. Notas para la sustentación
+## 9. Preguntas con respuestas. 
 
 - **¿Dónde está la contraseña?** No existe: la autenticación se basa en un par
   de claves asimétricas. El servidor solo almacena la llave pública.
