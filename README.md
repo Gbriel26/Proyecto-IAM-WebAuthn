@@ -226,14 +226,14 @@ BENCH_ITERATIONS=50 npm run benchmark
 ```
 
 Genera `docs/benchmark-results.json` y una tabla por consola. Ejemplo de
-ejecución local (Node 26, Windows, PostgreSQL 18):
+ejecución local (Node.js 26.5.1, Windows, PostgreSQL 18.6):
 
 | Fase | Media (ms) | Mín (ms) | Máx (ms) | Desv. estándar (ms) |
 |---|---:|---:|---:|---:|
-| Generación de Challenge (`/api/auth/login-challenge`) | 2,5 | 1,8 | 3,4 | 0,5 |
-| Ceremonia local ES256 (software, cota inferior) | 0,2 | 0,1 | 0,4 | 0,1 |
-| Validación de Firma + JWT + Sesión (`/api/auth/login-verify`) | 5,8 | 4,4 | 8,2 | 1,2 |
-| Validación Middleware RBAC (`/api/dashboard/pyme-data`) | 2,4 | 1,7 | 3,4 | 0,6 |
+| Generación de Challenge (`/api/auth/login-challenge`) | 2,2 | 1,7 | 2,8 | 0,3 |
+| Ceremonia local ES256 (software, cota inferior) | 0,2 | 0,1 | 0,3 | 0,0 |
+| Validación de Firma + JWT + Sesión (`/api/auth/login-verify`) | 5,3 | 4,0 | 12,5 | 1,8 |
+| Validación Middleware RBAC (`/api/dashboard/pyme-data`) | 2,0 | 1,6 | 2,4 | 0,2 |
 
 > La ceremonia real con Windows Hello/TPM añade la interacción biométrica
 > humana (~1 s), que no es medible desde el servidor. El benchmark aísla el

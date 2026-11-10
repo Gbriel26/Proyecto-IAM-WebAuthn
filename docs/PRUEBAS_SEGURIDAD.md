@@ -19,8 +19,8 @@ eliminan al finalizar (borrado en cascada de credenciales y sesiones).
 Resultado de la última ejecución:
 
 - **24 pruebas / 24 exitosas / 0 fallidas**
-- Duración total: ~3,4 s (sin contar el arranque de PostgreSQL)
-- Entorno: Node.js 26, Windows, PostgreSQL 18 (compatible con 16+)
+- Duración total: ~4,3 s (sin contar el arranque de PostgreSQL)
+- Entorno: Node.js 26.5.1, Windows, PostgreSQL 18.6 (compatible con 16+)
 
 ---
 
@@ -173,36 +173,35 @@ SELECT id_sesion, id_usuario, fecha_expiracion
 
 ## 5. Resultados de desempeño
 
-Salida de `npm run benchmark` (20 iteraciones + 3 de calentamiento, Node 26,
-Windows, PostgreSQL 18):
+Salida de `npm run benchmark` (20 iteraciones + 3 de calentamiento, Node.js
+26.5.1, Windows, PostgreSQL 18.6):
 
 | Fase | Media (ms) | Mín (ms) | Máx (ms) | Desv. estándar (ms) |
 |---|---:|---:|---:|---:|
-| Generación de Challenge (`/api/auth/login-challenge`) | 2,5 | 1,8 | 3,4 | 0,5 |
-| Ceremonia local ES256 (software, cota inferior) | 0,2 | 0,1 | 0,4 | 0,1 |
-| Validación de Firma + JWT + Sesión (`/api/auth/login-verify`) | 5,8 | 4,4 | 8,2 | 1,2 |
-| Validación Middleware RBAC (`/api/dashboard/pyme-data`) | 2,4 | 1,7 | 3,4 | 0,6 |
+| Generación de Challenge (`/api/auth/login-challenge`) | 2,2 | 1,7 | 2,8 | 0,3 |
+| Ceremonia local ES256 (software, cota inferior) | 0,2 | 0,1 | 0,3 | 0,0 |
+| Validación de Firma + JWT + Sesión (`/api/auth/login-verify`) | 5,3 | 4,0 | 12,5 | 1,8 |
+| Validación Middleware RBAC (`/api/dashboard/pyme-data`) | 2,0 | 1,6 | 2,4 | 0,2 |
 
 **Interpretación:** toda la latencia imputable al backend y a PostgreSQL se
-mantiene muy por debajo de los 35 ms. La diferencia con la Tabla 5 de la
-memoria se explica por el hardware y por medir la firma de software en lugar
-de la interacción biométrica real (~1 s). Ambas mediciones son compatibles con
-la conclusión: el cuello de botella es la ceremonia local del usuario, no el
-servidor.
+mantiene muy por debajo de los 35 ms. La Tabla 5 de la memoria reporta esta
+misma corrida; la fila de firma de software (0,2 ms) es una cota inferior y no
+equivale a la interacción biométrica real (~1 s). La conclusión se mantiene: el
+cuello de botella es la ceremonia local del usuario, no el servidor.
 
-El archivo `docs/benchmark-results.json` conserva las muestras individuales
-para anexarlas como evidencia.
+El archivo `docs/benchmark-results.json` conserva las muestras individuales de
+la corrida y coincide con la captura anexada como Figura A2.
 
 ---
 
-## 6. Evidencia sugerida para el documento
+## 6. Evidencia para el documento
 
-- Captura de `npm test` con **24/24**.
-- Captura del diálogo de Windows Hello.
+- Captura de `npm test` con **24/24** (incorporada en Anexo A, Figura A1).
+- Captura de `npm run benchmark` (incorporada en Anexo A, Figura A2).
+- Captura del diálogo de Windows Hello (evidencia complementaria sugerida).
 - Captura de la tabla `credenciales_webauthn` con una credencial `platform` y
-  otra `cross-platform`.
+  otra `cross-platform` (evidencia complementaria sugerida).
 - Captura de la consola de auditoría del frontend (challenge → firma →
-  verificación → JWT).
-- Captura de `npm run benchmark` y del JSON generado.
+  verificación → JWT) (evidencia complementaria sugerida).
 - Captura de un `401` al reutilizar un token después del logout y de un `400`
-  al repetir un challenge.
+  al repetir un challenge (evidencia complementaria sugerida).

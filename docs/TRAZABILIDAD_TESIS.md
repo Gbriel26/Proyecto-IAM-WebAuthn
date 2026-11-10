@@ -4,6 +4,10 @@ Este documento compara las tablas y afirmaciones de la memoria con la
 implementación final. Sirve para la revisión previa a la entrega y para
 responder preguntas del jurado con referencias exactas al repositorio.
 
+Las acciones de las secciones 1 a 3 y los ajustes de la sección 7 ya se
+aplicaron en la memoria; se conservan como registro de la revisión. El
+checklist final de la sección 8 está completo (8/8).
+
 ---
 
 ## 1. Tabla 1 — `usuarios`
@@ -56,39 +60,30 @@ firma y luego busca la sesión por `jti` (clave primaria), además de comprobar
 
 ## 4. Tabla 5 — Métricas de latencia
 
-La memoria reporta 20 iteraciones con estos valores:
+La Tabla 5 de la memoria se actualizó con la corrida real de 20 iteraciones
+más 3 de calentamiento:
 
-| Fase (memoria) | Media | Mín | Máx | Desv. |
+| Fase | Media | Mín | Máx | Desv. |
 |---|---:|---:|---:|---:|
-| Generación de Challenge (`/api/auth/login-challenge`) | 18,4 | 12,1 | 28,6 | 4,2 |
+| Generación de Challenge (`/api/auth/login-challenge`) | 2,2 | 1,7 | 2,8 | 0,3 |
 | Verificación Biométrica Local (Windows Hello) | 1.120,5 | 850,0 | 1.450,0 | 185,3 |
-| Validación de Firma y Registro de Sesión (`/api/auth/login-verify`) | 32,1 | 22,4 | 48,9 | 6,8 |
-| Validación Middleware RBAC (`/api/dashboard`) | 8,2 | 5,1 | 14,3 | 2,1 |
+| Validación de Firma y Registro de Sesión (`/api/auth/login-verify`) | 5,3 | 4,0 | 12,5 | 1,8 |
+| Validación Middleware RBAC (`/api/dashboard/pyme-data`) | 2,0 | 1,6 | 2,4 | 0,2 |
 
-El repositorio incorpora un benchmark reproducible (`npm run benchmark`) que
-mide 20 iteraciones + 3 de calentamiento y guarda las muestras en
-`docs/benchmark-results.json`. En la máquina de prueba (Node 26, Windows,
-PostgreSQL 18) los valores del backend son aún menores:
+El benchmark es reproducible con `npm run benchmark` y guarda las muestras en
+`docs/benchmark-results.json` (`2026-11-10T21:59:46.391Z`, Node.js 26.5.1,
+Windows, PostgreSQL 18.6). Los valores coinciden con la captura real anexada
+como Figura A2. La ceremonia local ES256 de software (0,2 ms) se reporta como
+cota inferior; la conclusión se mantiene: el backend está por debajo de 35 ms y
+el cuello de botella es la ceremonia biométrica local.
 
-| Fase (código actual) | Media | Mín | Máx | Desv. |
-|---|---:|---:|---:|---:|
-| `/api/auth/login-challenge` | 2,5 | 1,8 | 3,4 | 0,5 |
-| Ceremonia local ES256 (software, cota inferior) | 0,2 | 0,1 | 0,4 | 0,1 |
-| `/api/auth/login-verify` | 5,8 | 4,4 | 8,2 | 1,2 |
-| `/api/dashboard/pyme-data` | 2,4 | 1,7 | 3,4 | 0,6 |
-
-**Recomendación:** conservar la Tabla 5 de la memoria y añadir una nota al pie
-con la reproducción actual, o reemplazarla por la nueva medición indicando
-hardware y fecha. En ambos casos se mantiene la conclusión: el backend está
-por debajo de 35 ms y el cuello de botella es la ceremonia biométrica local.
-
-Detalles a corregir en la memoria:
+Detalles verificados en la memoria:
 
 - La ruta real es **`/api/dashboard/pyme-data`**, no `/api/dashboard`.
 - La fila “Verificación Biometría Local” no la mide el servidor; el benchmark
   de software mide solo la firma ES256 y debe presentarse como **cota
   inferior**, no como equivalente a Windows Hello.
-- Indicar que se hicieron 3 iteraciones de calentamiento antes de las 20
+- Se indicó que se hicieron 3 iteraciones de calentamiento antes de las 20
   medidas.
 
 ---
@@ -105,15 +100,16 @@ Los cuatro criterios de la memoria están cubiertos por la suite automatizada:
 | Invalidación tras logout | Logout + reutilización del token (401) |
 
 La suite completa son **24 pruebas** (`npm test`), todas exitosas. El detalle
-está en `docs/PRUEBAS_SEGURIDAD.md`. Se sugiere reemplazar el texto
+está en `docs/PRUEBAS_SEGURIDAD.md`. En la memoria se reemplazó el texto
 “Invalidation de Sesión” por **“Invalidación de Sesión”**.
 
 ---
 
-## 6. Cambios de seguridad que conviene añadir a la memoria
+## 6. Cambios de seguridad incorporados a la memoria
 
-Estos puntos no aparecían en la versión inicial del documento y ahora están
-implementados; conviene mencionarlos como aportes de la versión final:
+Estos puntos no aparecían en la versión inicial del documento, ya están
+implementados y se incorporaron a la memoria en la sección **Controles de
+seguridad complementarios** del capítulo de resultados:
 
 1. **Retos de un solo uso con TTL** (`ChallengeStore`): 5 minutos, máximo
    10.000 entradas y rechazo de replay.
@@ -135,30 +131,35 @@ implementados; conviene mencionarlos como aportes de la versión final:
 
 ---
 
-## 7. Ajustes de redacción sugeridos
+## 7. Ajustes aplicados en la memoria
 
-- **Tabla 1:** agregar `usuario` a la lista de roles.
-- **Tabla 2:** cambiar `contador_firmas INT` por `BIGINT`; indicar
-  `id_credencial VARCHAR(1024)`; describir `tipo_autenticador` como
+- **Tabla 1:** se agregó `usuario` a la lista de roles.
+- **Tabla 2:** se cambió `contador_firmas INT` por `BIGINT`; se indicó
+  `id_credencial VARCHAR(1024)`; se describió `tipo_autenticador` como
   `platform`/`cross-platform`.
-- **Tabla 3:** cambiar `TIMESTAMP` por `TIMESTAMPTZ`; mencionar `jti` e índice.
-- **Tabla 5:** corregir la ruta del dashboard y añadir la nota de reproducción.
-- **Tabla 6:** corregir “Invalidation” por “Invalidación”.
-- **Metodología:** sustituir “Node.js v20 / PostgreSQL v16” por “Node.js 20+ /
-  PostgreSQL 16+ (validado también con Node 26 y PostgreSQL 18)”.
-- **Alcance:** aclarar que la UI es una demostración académica y que la
+- **Tabla 3:** se cambió `TIMESTAMP` por `TIMESTAMPTZ`; se mencionaron `jti` e
+  índice.
+- **Tabla 5:** se corrigió la ruta del dashboard y se añadió la nota de
+  reproducción.
+- **Tabla 6:** se corrigió “Invalidation” por “Invalidación”.
+- **Metodología:** se sustituyó “Node.js v20 / PostgreSQL v16” por “Node.js 20+ /
+  PostgreSQL 16+ (validado también con Node.js 26.5.1 y PostgreSQL 18.6)”.
+- **Alcance:** se aclaró que la UI es una demostración académica y que la
   política de roles pública es configurable (`ALLOW_PUBLIC_ROLE_SELECTION`).
 
 ---
 
 ## 8. Checklist antes de entregar
 
-- [ ] Actualizar los tipos de dato de las Tablas 2 y 3.
-- [ ] Agregar el rol `usuario` a la Tabla 1.
-- [ ] Corregir la ruta `/api/dashboard/pyme-data`.
-- [ ] Añadir la nota de reproducibilidad del benchmark.
-- [ ] Corregir “Invalidation”.
-- [ ] Mencionar los aportes de seguridad de la sección 6.
-- [ ] Ejecutar `npm test` y `npm run benchmark` y anexar las capturas.
-- [ ] Verificar que la versión de Node/PostgreSQL declarada coincide con la
-      realmente usada en la sustentación.
+- [x] Cumplido. Actualizar los tipos de dato de las Tablas 2 y 3.
+- [x] Cumplido. Agregar el rol `usuario` a la Tabla 1.
+- [x] Cumplido. Corregir la ruta `/api/dashboard/pyme-data`.
+- [x] Cumplido. Añadir la nota de reproducibilidad del benchmark.
+- [x] Cumplido. Corregir “Invalidation”.
+- [x] Cumplido. Mencionar los aportes de seguridad de la sección 6.
+- [x] Cumplido. Ejecutar `npm test` y `npm run benchmark` y anexar las capturas
+      (Anexo A, Figuras A1 y A2).
+- [x] Cumplido. Verificar que la versión de Node/PostgreSQL declarada coincide
+      con la realmente usada en la sustentación.
+
+**Auditoría de cierre:** 10/11/2026. Checklist completo: 8/8.
