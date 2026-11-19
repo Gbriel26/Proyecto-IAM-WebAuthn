@@ -14,6 +14,8 @@ const dashboardRoutes = require('./routes/dashboard.routes');
 const app = express();
 
 app.disable('x-powered-by');
+// Railway termina HTTPS en su proxy: confiar en 1 salto permite que
+// req.secure sea true y que la cookie Secure funcione en producción.
 app.set('trust proxy', config.trustProxy);
 
 // ---------------------------------------------------------------------------
@@ -98,7 +100,8 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada', request_id: req.id });
 });
 
-// Frontend estático de demostración.
+// Frontend servido por el mismo Express que la API. Así el navegador usa
+// el mismo origen para HTML, fetch, cookies y WebAuthn (sin CORS cruzado).
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------------------------------------------------------------------------

@@ -41,6 +41,7 @@ ZISXA-Proyecto II 26-2.
 
 | Tabla | Propósito |
 |---|---|
+| `roles` | Catálogo de roles base (`usuario`, `operativo`, `gerencia`, `admin`) |
 | `usuarios` | Identidad, email, nombre, rol y estado (sin contraseñas) |
 | `credenciales_webauthn` | Llave pública, contador de firmas y tipo de autenticador |
 | `sesiones_iam` | JWT emitidos, usuario y fecha de expiración (revocación) |
@@ -68,6 +69,8 @@ createdb iam_webauthn
 # 3. Configuración
 copy .env.example .env        # Windows
 # cp .env.example .env        # Linux/macOS
+# En .env, para desarrollo local comenta el bloque de producción y
+# descomenta el bloque "DESARROLLO LOCAL" al final de .env.example.
 
 # 4. Genera un JWT_SECRET real y pégalo en .env
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
@@ -176,8 +179,9 @@ cambios de rol deben ser una acción administrativa explícita y auditada.
 - `contador_firmas`: `INTEGER` → `BIGINT`
 - `id_credencial`: `VARCHAR(255)` → `VARCHAR(1024)`
 - `fecha_expiracion`: `TIMESTAMP` → `TIMESTAMPTZ`
+- creación y siembra idempotente de la tabla `roles`
 - normalización de emails a minúsculas
-- restricción `CHECK` de roles
+- restricción `CHECK` de roles y llave foránea `usuarios.rol → roles.nombre`
 - índices únicos de token/email e índice de expiración
 
 ---
@@ -243,7 +247,59 @@ ejecución local (Node.js 26.5.1, Windows, PostgreSQL 18.6):
 
 ---
 
-## 8. Estructura del proyecto
+## 8. Despliegue en Railway
+
+El frontend y la API corren en el mismo servicio Express, así que el navegador
+usa el mismo origen para el HTML, `/api/*`, las cookies y WebAuthn. El servidor
+escucha en `process.env.PORT`, sobre `0.0.0.0`.
+
+### 8.1 Pasos
+
+1. Sube el proyecto a GitHub.
+2. En Railway crea un proyecto y agrega un servicio PostgreSQL.
+3. Agrega el servicio web desde el repositorio. Railway detecta Node y usa
+   `npm start` (también está incluido `railway.json`).
+4. En **Variables** del servicio web, pega las variables de `.env.example` y
+   reemplaza:
+   - `DATABASE_URL`: Internal Database URL del PostgreSQL (Railway la inyecta
+     al vincular el servicio).
+   - `RP_ID`: dominio público de Railway, sin `https://`, sin puerto y sin ruta.
+   - `ORIGIN`: `https://` + ese dominio, sin barra final.
+   - `JWT_SECRET`: genera uno real de al menos 32 caracteres.
+5. Genera el dominio público en **Settings > Networking** y actualiza `RP_ID`
+   y `ORIGIN` si cambia.
+6. Deploy. `src/server.js` aplica `src/schema.sql` y crea las tablas, los roles
+   base y los índices. En producción reintenta si PostgreSQL aún no está listo.
+7. Verifica `https://TU-DOMINIO/api/health`.
+
+### 8.2 Variables críticas
+
+| Variable | Valor en Railway |
+|---|---|
+| `NODE_ENV` | `production` |
+| `HOST` | `0.0.0.0` |
+| `DATABASE_URL` | Internal Database URL (la inyecta Railway) |
+| `DATABASE_SSL` | `auto` |
+| `RP_ID` | `tu-servicio.up.railway.app` |
+| `ORIGIN` | `https://tu-servicio.up.railway.app` |
+| `COOKIE_SECURE` | `true` |
+| `TRUST_PROXY` | `1` |
+| `ALLOW_PUBLIC_ROLE_SELECTION` | `false` |
+
+`PORT` lo inyecta Railway; no lo definas en el panel. `DATABASE_SSL=auto`
+activa SSL en hosts públicos y lo desactiva en `localhost` y
+`*.railway.internal`.
+
+> WebAuthn exige HTTPS fuera de localhost. Si cambias el dominio de Railway,
+> actualiza `RP_ID` y `ORIGIN` al mismo tiempo y vuelve a desplegar.
+
+> El primer usuario que se registre puede quedar como `admin` (bootstrap)
+> aunque `ALLOW_PUBLIC_ROLE_SELECTION=false`. Hazlo inmediatamente después del
+> primer despliegue y luego mantén el alta de roles elevados solo para admins.
+
+---
+
+## 9. Estructura del proyecto
 
 ```
 src/
@@ -264,17 +320,18 @@ src/
     tokenService.js          Emisión/verificación de JWT
   utils/
     challengeStore.js        Challenges con TTL y un solo uso
-  schema.sql                 Tablas, migraciones e índices
-public/                      Frontend HTML/CSS/JS
+  schema.sql                 Tablas, roles base, migraciones e índices
+public/                      Frontend HTML/CSS/JS (mismo origen que la API)
 tests/                       Pruebas de integración y unitarias
 tools/                       Autenticador de software y utilidades
 scripts/                     db:init y benchmark
+railway.json                 Configuración de despliegue en Railway
 docs/                        Resultados y matriz de pruebas
 ```
 
 ---
 
-## 9. Preguntas con respuestas. 
+## 10. Preguntas con respuestas.
 
 - **¿Dónde está la contraseña?** No existe: la autenticación se basa en un par
   de claves asimétricas. El servidor solo almacena la llave pública.
@@ -290,7 +347,7 @@ docs/                        Resultados y matriz de pruebas
 
 ---
 
-## 10. Limitaciones y trabajo futuro
+## 11. Limitaciones y trabajo futuro
 
 - Los challenges y el rate limiting viven en memoria: para varias instancias
   se recomienda Redis.

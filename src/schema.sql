@@ -13,6 +13,22 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ---------------------------------------------------------------------------
+-- Catálogo de roles base (RBAC)
+-- Se siembra en cada arranque; ON CONFLICT DO NOTHING respeta cambios futuros.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS roles (
+  nombre       VARCHAR(50) PRIMARY KEY,
+  descripcion  TEXT NOT NULL
+);
+
+INSERT INTO roles (nombre, descripcion) VALUES
+  ('usuario',   'Acceso personal básico'),
+  ('operativo', 'Operación y tareas del negocio'),
+  ('gerencia',  'Consulta y tablero gerencial'),
+  ('admin',     'Administración total del IAM')
+ON CONFLICT (nombre) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
 -- Tabla 1: identidades del IAM (sin contraseñas ni hashes)
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -116,6 +132,19 @@ BEGIN
     ALTER TABLE usuarios
       ADD CONSTRAINT usuarios_rol_check
       CHECK (rol IN ('usuario', 'operativo', 'gerencia', 'admin'));
+  END IF;
+END $$;
+
+-- Integridad referencial contra el catálogo de roles base.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'usuarios_rol_fk'
+  ) THEN
+    ALTER TABLE usuarios
+      ADD CONSTRAINT usuarios_rol_fk
+      FOREIGN KEY (rol) REFERENCES roles(nombre)
+      ON UPDATE CASCADE ON DELETE RESTRICT;
   END IF;
 END $$;
 

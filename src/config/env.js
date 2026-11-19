@@ -46,19 +46,33 @@ function normalizeOrigin(raw) {
   return url.origin;
 }
 
-function parseOrigins(raw, fallbackPort) {
+function parseOrigins(raw) {
   const parts = String(raw || '')
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
-  if (parts.length === 0) parts.push(`http://localhost:${fallbackPort}`);
+  if (parts.length === 0) {
+    fail(
+      'ORIGIN es obligatorio (p. ej. http://localhost:3000 o https://tu-dominio.up.railway.app)'
+    );
+  }
   return [...new Set(parts.map(normalizeOrigin))];
 }
 
-if (!process.env.DATABASE_URL || !String(process.env.DATABASE_URL).trim()) {
+const databaseUrl = String(process.env.DATABASE_URL || '').trim();
+if (!databaseUrl) {
   fail(
     'DATABASE_URL es obligatorio (p. ej. postgres://usuario:clave@localhost:5432/iam_webauthn)'
   );
+}
+let parsedDatabaseUrl;
+try {
+  parsedDatabaseUrl = new URL(databaseUrl);
+} catch {
+  fail('DATABASE_URL no es una URL válida');
+}
+if (!['postgres:', 'postgresql:'].includes(parsedDatabaseUrl.protocol)) {
+  fail('DATABASE_URL debe usar el esquema postgres:// o postgresql://');
 }
 
 const port = parseInteger(process.env.PORT, 3000, {
@@ -85,24 +99,38 @@ if (PLACEHOLDER_SECRETS.has(jwtSecret)) {
   fail('JWT_SECRET sigue siendo un valor de ejemplo. Genera uno real antes de arrancar.');
 }
 
-const rpId = String(process.env.RP_ID || 'localhost').trim();
-if (!rpId || rpId.includes('://') || rpId.includes('/')) {
-  fail(`RP_ID debe ser un dominio sin esquema ni ruta (recibido: "${rpId}")`);
+const rpId = String(process.env.RP_ID || '').trim().toLowerCase();
+if (!rpId) {
+  fail(
+    'RP_ID es obligatorio (dominio sin esquema ni ruta; p. ej. app.ejemplo.com o localhost en desarrollo)'
+  );
+}
+if (
+  rpId.includes('://') ||
+  rpId.includes('/') ||
+  rpId.includes(':') ||
+  rpId.startsWith('.') ||
+  rpId.endsWith('.')
+) {
+  fail(`RP_ID debe ser un dominio sin esquema, puerto ni ruta (recibido: "${rpId}")`);
 }
 
 const rpName = String(process.env.RP_NAME || 'IAM PyME').trim() || 'IAM PyME';
 
-const origins = parseOrigins(process.env.ORIGIN, port);
+const origins = parseOrigins(process.env.ORIGIN);
 
 if (isProduction) {
-  if (!process.env.ORIGIN) {
-    fail('ORIGIN es obligatorio en producción (p. ej. https://iam.mipyme.com)');
-  }
   if (origins.some((origin) => !origin.startsWith('https://'))) {
     fail('En producción ORIGIN debe usar https:// (WebAuthn lo exige fuera de localhost)');
   }
-  if (rpId === 'localhost') {
-    fail('RP_ID no puede ser "localhost" en producción');
+  if (['localhost', '127.0.0.1', '::1'].includes(rpId)) {
+    fail('RP_ID no puede ser localhost ni una IP en producción');
+  }
+  for (const origin of origins) {
+    const hostname = new URL(origin).hostname.toLowerCase();
+    if (hostname !== rpId && !hostname.endsWith(`.${rpId}`)) {
+      fail(`ORIGIN "${origin}" no pertenece al dominio de RP_ID "${rpId}"`);
+    }
   }
 }
 
@@ -139,11 +167,17 @@ const rateLimitStrictMax = parseInteger(process.env.RATE_LIMIT_STRICT_MAX, 30, {
   max: 100_000,
 });
 
-let trustProxy = false;
+// Railway termina TLS en su proxy y reenvía la petición al contenedor.
+// Confiar exactamente en un salto permite que req.secure y las cookies
+// Secure funcionen sin confiar en toda la cadena de proxies.
+let trustProxy = 1;
 if (process.env.TRUST_PROXY !== undefined && process.env.TRUST_PROXY !== '') {
   const raw = String(process.env.TRUST_PROXY).trim();
-  trustProxy = /^\d+$/.test(raw) ? Number(raw) : parseBoolean(raw, false, 'TRUST_PROXY');
+  trustProxy = /^\d+$/.test(raw) ? Number(raw) : parseBoolean(raw, true, 'TRUST_PROXY');
 }
+
+const host = String(process.env.HOST || '0.0.0.0').trim();
+if (!host) fail('HOST no puede estar vacío');
 
 const sessionCookieName = String(process.env.SESSION_COOKIE_NAME || 'iam_token').trim();
 if (!/^[A-Za-z0-9_-]+$/.test(sessionCookieName)) {
@@ -154,6 +188,7 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction,
   port,
+  host,
   rpId,
   rpName,
   origins,
